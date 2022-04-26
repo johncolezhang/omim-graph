@@ -195,6 +195,11 @@ def handle_omim_map():
         gene_name = row["Gene Symbols"]
         gene_name_detail = row["Gene Name"]
         chromosome = row["# Chromosome"]
+        position_start = row["Genomic Position Start"]
+        position_end = row["Genomic Position End"]
+        cyto_location = row["Cyto Location"]
+        omim_id = row["MIM Number"]
+        phenotypes = row["Phenotypes"]
 
         if "#" in chromosome:
             continue
@@ -378,5 +383,5 @@ def handle_omim_chpo_rel():
 
 if __name__ == "__main__":
     handle_omim_map()
-    handle_gwas_association()
-    handle_omim_chpo_rel()
+    # handle_gwas_association()
+    # handle_omim_chpo_rel()
