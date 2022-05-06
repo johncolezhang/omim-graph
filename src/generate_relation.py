@@ -50,6 +50,7 @@ def handle_gwas_association():
                 "pubmed_id": pubmed_id,
                 "display": pubmed_id,
                 "pubmed_link": pubmed_link,
+                "pubmed_study": pubmed_study,
                 "journal": journal,
                 "sample_size": sample_size,
                 "date": date
@@ -92,6 +93,9 @@ def handle_gwas_association():
                 lambda x: x.lower() not in ["na", "", "nr", "n/a", "no mapped genes", "intergenic"] and len(x) > 1,
                 gene_names
             )))
+
+        if ";" in rsID:
+            continue
 
         rsID_node = {
             "label": ["rsID"],
