@@ -97,7 +97,7 @@ def handle_summary():
                         "label": ["HPO"],
                         "node_ID": "HPO_id",
                         "property": {
-                            "HPO_id": hpo
+                            "HPO_id": "HP:{}".format(hpo)
                         }
                     },
                     "end_node": {
@@ -127,7 +127,7 @@ def handle_summary():
                         "label": ["phenotype_OMIM"],
                         "node_ID": "OMIM_id",
                         "property": {
-                            "OMIM_id": p_omim
+                            "OMIM_id": "OMIM:{}".format(p_omim)
                         }
                     },
                     "end_node": {

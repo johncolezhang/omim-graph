@@ -379,7 +379,7 @@ def handle_omim_chpo_rel():
         else:
             node_dict["hpo_{}".format(hpo_id)]["property"].update(hpo_node["property"])
 
-    df_rel = pd.read_csv("data/omim_chn/omim_gene.txt", sep="\t", dtype=str).fillna("")
+    df_rel = pd.read_csv("data/omim_chn/OMIM_gene.txt", sep="\t", dtype=str).fillna("")
 
     for index, row in df_rel.iterrows():
         omim_id = row["diseaseId"]

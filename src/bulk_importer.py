@@ -89,22 +89,78 @@ def gen_rsid_node_csv():
     # rsID node, from clinvar
     # header: variant_name:ID(rsID),display,type
     rsid_str = "variant_name:ID(rsID),display,type\n"
+    rs_list = []
+    rs_set = []
     for key, node in clinvar_node_dict.items():
-        if "rsID" in node["label"]:
-            row_str = ""
-            for col in ["variant_name", "display", "type"]:
-                cur_property = node["property"].get(col, "").replace("\"", "'")
-                cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
-                row_str += cur_property + ","
+        if "rsID" in node["label"] and key not in rs_set:
+            rs_list.append(node)
+            rs_set.append(key)
 
-            # 移除最后一个逗号
-            rsid_str += row_str[:-1] + "\n"
+    for key, node in omim_node_dict.items():
+        if "rsID" in node["label"] and key not in rs_set:
+            rs_list.append(node)
+            rs_set.append(key)
+
+    for node in rs_list:
+        row_str = ""
+        for col in ["variant_name", "display", "type"]:
+            cur_property = node["property"].get(col, "").replace("\"", "'")
+            cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
+            row_str += cur_property + ","
+
+        # 移除最后一个逗号
+        rsid_str += row_str[:-1] + "\n"
 
     with open("output/rsID.csv", "w", encoding="utf-8") as f:
         f.write(rsid_str)
 
     # test csv availability
     pd.read_csv("output/rsID.csv")
+
+
+def gen_pubmed_node_csv():
+    # pubmed node, from gwas
+    # header: pubmed_id:ID(pubmed),display,pubmed_link,journal,sample_size,date
+    pubmed_str = "pubmed_id:ID(pubmed),display,pubmed_link,journal,sample_size,date\n"
+    for key, node in omim_node_dict.items():
+        if "pubmed" in node["label"]:
+            row_str = ""
+            for col in ["pubmed_id", "display", "pubmed_link", "journal", "sample_size", "date"]:
+                cur_property = node["property"].get(col, "").replace("\"", "'")
+                cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
+                row_str += cur_property + ","
+
+            # 移除最后一个逗号
+            pubmed_str += row_str[:-1] + "\n"
+
+    with open("output/pubmed.csv", "w", encoding="utf-8") as f:
+        f.write(pubmed_str)
+
+    # test csv availability
+    pd.read_csv("output/pubmed.csv")
+
+
+def gen_gene_node_csv():
+    # gene node, from omim
+    # header: gene_name:ID(gene),display,gene_name_detail,chromosome,position_start,position_end,cyto_location,OMIM_id
+    gene_str = "gene_name:ID(gene),display,gene_name_detail,chromosome,position_start,position_end,cyto_location,OMIM_id"
+    for key, node in omim_node_dict.items():
+        if "gene" in node["label"]:
+            row_str = ""
+            for col in ["gene_name", "display", "gene_name_detail", "chromosome", "position_start",
+                        "position_end", "cyto_location", "OMIM_id"]:
+                cur_property = node["property"].get(col, "").replace("\"", "'")
+                cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
+                row_str += cur_property + ","
+
+            # 移除最后一个逗号
+            gene_str += row_str[:-1] + "\n"
+
+    with open("output/gene.csv", "w", encoding="utf-8") as f:
+        f.write(gene_str)
+
+    # test csv availability
+    pd.read_csv("output/gene.csv")
 
 
 def gen_omim_hpo_edge_csv():
@@ -191,13 +247,111 @@ def gen_location_rsid_edge_csv():
     pd.read_csv("output/location_rsID_edge.csv")
 
 
+def gen_pubmed_gene_edge_csv():
+    # (pubmed)-[research_in_gene]-(gene), from gwas
+    # header: :START_ID(pubmed),:END_ID(gene)
+    pubmed_gene_str = ":START_ID(pubmed),:END_ID(gene)\n"
+    for key, edge in omim_edge_dict.items():
+        if "research_in_gene" in edge["edge"]["label"]:
+            start_id = edge["start_node"]["property"]["pubmed_id"]
+            end_id = edge["end_node"]["property"]["gene_name"]
+            # 节点存在再存储
+            if "pubmed_{}".format(start_id) in omim_node_dict.keys() and \
+                    "gene_{}".format(end_id) in omim_node_dict.keys():
+                row_str = "{},{}".format(start_id, end_id)
+                pubmed_gene_str += row_str + "\n"
+
+    with open("output/pubmed_gene_edge.csv", "w", encoding="utf-8") as f:
+        f.write(pubmed_gene_str)
+
+    # test csv availability
+    pd.read_csv("output/pubmed_gene_edge.csv")
+
+
+def gen_pubmed_rsid_edge_csv():
+    # (pubmed)-[research_in_rsID]-(rsID), from gwas
+    # header: :START_ID(pubmed),risk_allele,risk_allele_frequency,pubmed_study,p_value,p_value_mlog,:END_ID(rsID)
+    pubmed_rsid_str = ":START_ID(pubmed),risk_allele,risk_allele_frequency,pubmed_study,p_value,p_value_mlog,:END_ID(rsID)\n"
+    for key, edge in omim_edge_dict.items():
+        if "research_in_gene" in edge["edge"]["label"]:
+            start_id = edge["start_node"]["property"]["pubmed_id"]
+            end_id = edge["end_node"]["property"]["variant_name"]
+            # 节点存在再存储
+            if "pubmed_{}".format(start_id) in omim_node_dict.keys() and \
+                    "rsID_{}".format(end_id) in omim_node_dict.keys():
+                row_str = ""
+                for col in ["risk_allele", "risk_allele_frequency",
+                            "pubmed_study", "p_value", "p_value_mlog"]:
+                    cur_property = edge["edge"]["property"].get(col, "").replace("\"", "'")
+                    cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
+                    row_str += cur_property + ","
+
+                # 移除row_str的最后一个逗号
+                row_str = "{},{},{}".format(start_id, row_str[-1], end_id)
+                pubmed_rsid_str += row_str + "\n"
+
+    with open("output/pubmed_rsid_edge.csv", "w", encoding="utf-8") as f:
+        f.write(pubmed_rsid_str)
+
+    # test csv availability
+    pd.read_csv("output/pubmed_rsid_edge.csv")
+
+
+def gen_omim_gene_edge_csv():
+    # (phenotype_OMIM)-[omim_gene_influence]-(gene), from omim
+    # header: :START_ID(phenotype_OMIM),:END_ID(gene)
+    omim_gene_str = ":START_ID(phenotype_OMIM),:END_ID(gene)\n"
+    for key, edge in omim_edge_dict.items():
+        if "omim_gene_influence" in edge["edge"]["label"]:
+            start_id = edge["start_node"]["property"]["OMIM_id"]
+            end_id = edge["end_node"]["property"]["gene_name"]
+            # 节点存在再存储
+            if "omim_{}".format(start_id) in omim_node_dict.keys() and \
+                    "gene_{}".format(end_id) in omim_node_dict.keys():
+                row_str = "{},{}".format(start_id, end_id)
+                omim_gene_str += row_str + "\n"
+
+    with open("output/omim_gene_edge.csv", "w", encoding="utf-8") as f:
+        f.write(omim_gene_str)
+
+    # test csv availability
+    pd.read_csv("output/omim_gene_edge.csv")
+
+
+def gene_hpo_gene_edge_csv():
+    # (HPO)-[hpo_gene_influence]-(gene), from omim
+    # header: :START_ID(HPO),:END_ID(gene)
+    hpo_gene_str = ":START_ID(HPO),:END_ID(gene)\n"
+    for key, edge in omim_edge_dict.items():
+        if "hpo_gene_influence" in edge["edge"]["label"]:
+            start_id = edge["start_node"]["property"]["HPO_id"]
+            end_id = edge["end_node"]["property"]["gene_name"]
+            # 节点存在再存储
+            if "hpo_{}".format(start_id) in omim_node_dict.keys() and \
+                    "gene_{}".format(end_id) in omim_node_dict.keys():
+                row_str = "{},{}".format(start_id, end_id)
+                hpo_gene_str += row_str + "\n"
+
+    with open("output/hpo_gene_edge.csv", "w", encoding="utf-8") as f:
+        f.write(hpo_gene_str)
+
+    # test csv availability
+    pd.read_csv("output/hpo_gene_edge.csv")
+
+
 if __name__ == "__main__":
     # gen_omim_node_csv()
     # gen_hpo_node_csv()
-    # gen_omim_hpo_edge_csv()
-
-    gen_location_node_csv()
+    # gen_location_node_csv()
     gen_rsid_node_csv()
-    gen_omim_location_edge_csv()
-    gen_hpo_location_edge_csv()
-    gen_location_rsid_edge_csv()
+    gen_pubmed_node_csv()
+    gen_gene_node_csv()
+
+    # gen_omim_hpo_edge_csv()
+    # gen_omim_location_edge_csv()
+    # gen_hpo_location_edge_csv()
+    # gen_location_rsid_edge_csv()
+    gen_pubmed_gene_edge_csv()
+    gen_pubmed_rsid_edge_csv()
+    gen_omim_gene_edge_csv()
+    gene_hpo_gene_edge_csv()
