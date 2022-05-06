@@ -1,0 +1,14 @@
+version: '2'
+services:
+    neo4j2:
+        environment:
+            NEO4J_AUTH: "neo4j/123456"
+        image: neo4j:4.3.1
+        container_name: neo4j2
+        volumes:
+            - d:/docker_volume/neo4j2/data:/data
+            - d:/docker_volume/neo4j2/logs:/logs
+            - d:/docker_volume/neo4j2/import:/var/lib/neo4j/import
+            - d:/docker_volume/neo4j2/plugins:/plugins
+            - d:/docker_volume/neo4j2/upload:/upload
+        command: "/var/lib/neo4j/bin/neo4j-admin load --from=/upload/neo4j.db.dump --database=neo4j --force"

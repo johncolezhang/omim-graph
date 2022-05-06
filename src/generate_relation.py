@@ -1,8 +1,10 @@
+import re
+
 import pandas as pd
 import json
 
-node_set = []
-edge_set = []
+node_dict = {}
+edge_dict = {}
 
 def handle_gwas_association():
     """
@@ -41,22 +43,25 @@ def handle_gwas_association():
         sample_size = row["INITIAL SAMPLE SIZE"].replace("\"", "'").replace("?", "Unknown")
         date = row["DATE"].replace("\"", "'").replace("?", "Unknown")
 
-        if "pubmed_{}".format(pubmed_id) not in node_set:
-            node_set.append("pubmed_{}".format(pubmed_id))
-
-            pubmed_node = {
-                "label": ["pubmed"],
-                "node_ID": "pubmed_id",
-                "property": {
-                    "pubmed_id": pubmed_id,
-                    "display": pubmed_id,
-                    "pubmed_link": pubmed_link,
-                    "journal": journal,
-                    "sample_size": sample_size,
-                    "date": date
-                }
+        pubmed_node = {
+            "label": ["pubmed"],
+            "node_ID": "pubmed_id",
+            "property": {
+                "pubmed_id": pubmed_id,
+                "display": pubmed_id,
+                "pubmed_link": pubmed_link,
+                "journal": journal,
+                "sample_size": sample_size,
+                "date": date
             }
+        }
+
+        if "pubmed_{}".format(pubmed_id) not in node_dict.keys():
             node_list.append(pubmed_node)
+            node_dict["pubmed_{}".format(pubmed_id)] = pubmed_node
+
+        else:
+            node_dict["pubmed_{}".format(pubmed_id)]["property"].update(pubmed_node["property"])
 
         # for edge
         risk_allele = row["STRONGEST SNP-RISK ALLELE"]
@@ -88,24 +93,75 @@ def handle_gwas_association():
                 gene_names
             )))
 
-        if "rsID_{}".format(rsID) not in node_set:
-            node_set.append("rsID_{}".format(rsID))
+        rsID_node = {
+            "label": ["rsID"],
+            "node_ID": "variant_name",
+            "property": {
+                "variant_name": rsID,
+                "display": rsID,
+                "type": "rsID"
+            }
+        }
 
-            rsID_node = {
+        if "rsID_{}".format(rsID) not in node_dict.keys():
+            node_list.append(rsID_node)
+            node_dict["rsID_{}".format(rsID)] = rsID_node
+
+        else:
+            node_dict["rsID_{}".format(rsID)]["property"].update(rsID_node["property"])
+
+        rsID_relation_edge = {
+            "start_node": {
+                "label": ["pubmed"],
+                "node_ID": "pubmed_id",
+                "property": {
+                    "pubmed_id": pubmed_id
+                }
+            },
+            "end_node": {
                 "label": ["rsID"],
                 "node_ID": "variant_name",
                 "property": {
                     "variant_name": rsID,
-                    "display": rsID,
                     "type": "rsID"
                 }
+            },
+            "edge": {
+                "label": "research_in_rsID",
+                "property": {
+                    "risk_allele": risk_allele,
+                    "risk_allele_frequency": risk_allele_frequency,
+                    "pubmed_study": pubmed_study,
+                    "p_value": p_value,
+                    "p_value_mlog": p_value_mlog
+                }
             }
-            node_list.append(rsID_node)
+        }
 
-        if "{}_{}".format(pubmed_id, rsID) not in edge_set:
-            edge_set.append("{}_{}".format(pubmed_id, rsID))
+        if "{}_{}".format(pubmed_id, rsID) not in edge_dict.keys():
+            edge_list.append(rsID_relation_edge)
+            edge_dict["{}_{}".format(pubmed_id, rsID)] = rsID_relation_edge
+        else:
+            edge_dict["{}_{}".format(pubmed_id, rsID)]["edge"]["property"].update(
+                rsID_relation_edge["edge"]["property"])
 
-            rsID_relation_edge = {
+        for gene_name in gene_names:
+            gene_node = {
+                "label": ["gene"],
+                "node_ID": "gene_name",
+                "property": {
+                    "gene_name": gene_name,
+                    "display": gene_name
+                }
+            }
+
+            if "gene_{}".format(gene_name) not in node_dict.keys():
+                node_list.append(gene_node)
+                node_dict["gene_{}".format(gene_name)] = gene_node
+            else:
+                node_dict["gene_{}".format(gene_name)]["property"].update(gene_node["property"])
+
+            gene_relation_edge = {
                 "start_node": {
                     "label": ["pubmed"],
                     "node_ID": "pubmed_id",
@@ -114,71 +170,56 @@ def handle_gwas_association():
                     }
                 },
                 "end_node": {
-                    "label": ["rsID"],
-                    "node_ID": "variant_name",
-                    "property": {
-                        "variant_name": rsID,
-                        "type": "rsID"
-                    }
-                },
-                "edge": {
-                    "label": "research_in_rsID",
-                    "property": {
-                        "risk_allele": risk_allele,
-                        "risk_allele_frequency": risk_allele_frequency,
-                        "pubmed_study": pubmed_study,
-                        "p_value": p_value,
-                        "p_value_mlog": p_value_mlog
-                    }
-                }
-            }
-            edge_list.append(rsID_relation_edge)
-
-        for gene_name in gene_names:
-            if "gene_{}".format(gene_name) not in node_set:
-                node_set.append("gene_{}".format(gene_name))
-
-                gene_node = {
                     "label": ["gene"],
                     "node_ID": "gene_name",
                     "property": {
                         "gene_name": gene_name,
-                        "display": gene_name
+                        "type": "gene"
                     }
+                },
+                "edge": {
+                    "label": "research_in_gene",
+                    "property": {}
                 }
-                node_list.append(gene_node)
+            }
 
-            if "{}_{}".format(pubmed_id, gene_name) not in edge_set:
-                edge_set.append("{}_{}".format(pubmed_id, gene_name))
-
-                gene_relation_edge = {
-                    "start_node": {
-                        "label": ["pubmed"],
-                        "node_ID": "pubmed_id",
-                        "property": {
-                            "pubmed_id": pubmed_id
-                        }
-                    },
-                    "end_node": {
-                        "label": ["gene"],
-                        "node_ID": "gene_name",
-                        "property": {
-                            "gene_name": gene_name,
-                            "type": "gene"
-                        }
-                    },
-                    "edge": {
-                        "label": "research_in_gene",
-                        "property": {}
-                    }
-                }
+            if "{}_{}".format(pubmed_id, gene_name) not in edge_dict.keys():
                 edge_list.append(gene_relation_edge)
+                edge_dict["{}_{}".format(pubmed_id, gene_name)] = gene_relation_edge
+            else:
+                edge_dict["{}_{}".format(pubmed_id, gene_name)]["edge"]["property"].update(
+                    gene_relation_edge["edge"]["property"])
 
     with open("json/gwas_nodes.json", "w") as f:
         json.dump(node_list, f)
 
     with open("json/gwas_edges.json", "w") as f:
         json.dump(edge_list, f)
+
+
+pheno_omim_regex = re.compile("[\d]+ \([\d]+\)")
+inheritance_regex = re.compile("(recessive|dominant|linked)")
+
+def parse_pheno_omim(pheno_str):
+    pheno_str = pheno_str.lower()
+    pheno_omim_id = []
+    inheritance = []
+    for x in pheno_str.split(","):
+        if pheno_omim_regex.findall(x):
+            pheno_omim_id.append(x.strip())
+        if inheritance_regex.findall(x.lower()):
+            inheritance.append(x.strip())
+
+    pheno_omim_id = list(set(pheno_omim_id))
+    for poi in pheno_omim_id:
+        pheno_str = pheno_str.replace(poi, "")
+
+    inheritance = list(set(inheritance))
+    for inh in inheritance:
+        pheno_str = pheno_str.replace(inh, "")
+
+    pheno_str = pheno_str.strip(" ,;?")
+    return [", ".join(pheno_omim_id), ", ".join(inheritance), pheno_str]
 
 
 def handle_omim_map():
@@ -198,14 +239,43 @@ def handle_omim_map():
         position_start = row["Genomic Position Start"]
         position_end = row["Genomic Position End"]
         cyto_location = row["Cyto Location"]
-        omim_id = row["MIM Number"]
-        phenotypes = row["Phenotypes"]
+        gene_omim_id = "OMIM:{}".format(row["MIM Number"]) \
+            if "OMIM:" not in row["MIM Number"] else row["MIM Number"] # gene omim
+        phenotype_list = row["Phenotypes"].split(";")
 
         if "#" in chromosome:
             continue
 
-    if "gene_{}".format(gene_name) not in node_set:
-        node_set.append("gene_{}".format(gene_name))
+        # 添加pheno_OMIM 节点
+        for pheno in phenotype_list:
+            pheno_result = parse_pheno_omim(pheno)
+            p_omim_id = pheno_result[0]
+            inheritance = pheno_result[1]
+
+            if "(" in p_omim_id:
+                p_omim_id = "OMIM:{}".format(p_omim_id.split("(")[0].strip())
+            else:
+                p_omim_id = ""
+
+            if p_omim_id != "": # 最少一项不为空
+                pheno_omim_node = {
+                    "label": ["phenotype_OMIM"],
+                    "node_ID": "OMIM_id",
+                    "property": {
+                        "OMIM_id": p_omim_id,
+                        "display": p_omim_id,
+                        "phenotype": pheno,
+                        "inheritance": inheritance
+                    }
+                }
+
+                if "omim_{}".format(p_omim_id) not in node_dict.keys():
+                    node_list.append(pheno_omim_node)
+                    node_dict["omim_{}".format(p_omim_id)] = pheno_omim_node
+                else:
+                    node_dict["omim_{}".format(p_omim_id)]["property"].update(pheno_omim_node["property"])
+
+        # gene omim 和 gene 用同一节点
         gene_node = {
             "label": ["gene"],
             "node_ID": "gene_name",
@@ -213,10 +283,19 @@ def handle_omim_map():
                 "gene_name": gene_name,
                 "display": gene_name,
                 "gene_name_detail": gene_name_detail,
-                "chromosome": chromosome
+                "chromosome": chromosome,
+                "position_start": position_start,
+                "position_end": position_end,
+                "cyto_location": cyto_location,
+                "OMIM_id": gene_omim_id
             }
         }
-        node_list.append(gene_node)
+
+        if "gene_{}".format(gene_name) not in node_dict.keys():
+            node_dict["gene_{}".format(gene_name)] = gene_node
+            node_list.append(gene_node)
+        else:
+            node_dict["gene_{}".format(gene_name)]["property"].update(gene_node["property"])
 
     with open("json/omim_gene_nodes.json", "w") as f:
         json.dump(node_list, f)
@@ -253,21 +332,22 @@ def handle_omim_chpo_rel():
         omim_name = row["英文名"]
         omim_name_chn = row["中文译名"]
 
-        if "omim_{}".format(omim_id) not in node_set:
-            node_set.append("omim_{}".format(omim_id))
-
-            omim_node = {
-                "label": ["OMIM"],
-                "node_ID": "OMIM_id",
-                "property": {
-                    "OMIM_id": omim_id,
-                    "display": omim_id,
-                    "OMIM_name": omim_name,
-                    "OMIM_name_chn": omim_name_chn
-                }
+        omim_node = {
+            "label": ["phenotype_OMIM"],
+            "node_ID": "OMIM_id",
+            "property": {
+                "OMIM_id": omim_id,
+                "display": omim_id,
+                "OMIM_name": omim_name,
+                "OMIM_name_chn": omim_name_chn
             }
-            node_list.append(omim_node)
+        }
 
+        if "omim_{}".format(omim_id) not in node_dict.keys():
+            node_dict["omim_{}".format(omim_id)] = omim_node
+            node_list.append(omim_node)
+        else:
+            node_dict["omim_{}".format(omim_id)]["property"].update(omim_node["property"])
 
     df_chpo = pd.read_csv("data/omim_chn/CHPO.txt", sep="\t", dtype=str).fillna("")
 
@@ -279,23 +359,25 @@ def handle_omim_chpo_rel():
         hpo_definition_chn = row["定义(中文)"]
         classifications = row["主分类(中文)"]
 
-        if "hpo_{}".format(hpo_id) not in node_set:
-            node_set.append("hpo_{}".format(hpo_id))
-
-            hpo_node = {
-                "label": ["HPO"],
-                "node_ID": "HPO_id",
-                "property": {
-                    "HPO_id": hpo_id,
-                    "display": hpo_id,
-                    "HPO_name": hpo_name,
-                    "HPO_name_chn": hpo_name_chn,
-                    "HPO_definition": hpo_definition,
-                    "HPO_definition_chn": hpo_definition_chn,
-                    "HPO_classifications": classifications
-                }
+        hpo_node = {
+            "label": ["HPO"],
+            "node_ID": "HPO_id",
+            "property": {
+                "HPO_id": hpo_id,
+                "display": hpo_id,
+                "HPO_name": hpo_name,
+                "HPO_name_chn": hpo_name_chn,
+                "HPO_definition": hpo_definition,
+                "HPO_definition_chn": hpo_definition_chn,
+                "HPO_classifications": classifications
             }
+        }
+
+        if "hpo_{}".format(hpo_id) not in node_dict.keys():
+            node_dict["hpo_{}".format(hpo_id)] = hpo_node
             node_list.append(hpo_node)
+        else:
+            node_dict["hpo_{}".format(hpo_id)]["property"].update(hpo_node["property"])
 
     df_rel = pd.read_csv("data/omim_chn/omim_gene.txt", sep="\t", dtype=str).fillna("")
 
@@ -304,75 +386,85 @@ def handle_omim_chpo_rel():
         gene_name = row["gene-symbol"]
         hpo_id = row["HPO-ID"]
 
-        if "{}_{}".format(omim_id, hpo_id) not in edge_set:
-            edge_set.append("{}_{}".format(omim_id, hpo_id))
-            omim_hpo_edge = {
-                "start_node": {
-                    "label": ["OMIM"],
-                    "node_ID": "OMIM_id",
-                    "property": {
-                        "OMIM_id": omim_id
-                    }
-                },
-                "end_node": {
-                    "label": ["HPO"],
-                    "node_ID": "HPO_id",
-                    "property": {
-                        "HPO_id": hpo_id,
-                    }
-                },
-                "edge": {
-                    "label": "has_phenotype",
-                    "property": {}
+        omim_hpo_edge = {
+            "start_node": {
+                "label": ["phenotype_OMIM"],
+                "node_ID": "OMIM_id",
+                "property": {
+                    "OMIM_id": omim_id
                 }
+            },
+            "end_node": {
+                "label": ["HPO"],
+                "node_ID": "HPO_id",
+                "property": {
+                    "HPO_id": hpo_id,
+                }
+            },
+            "edge": {
+                "label": "has_phenotype",
+                "property": {}
             }
+        }
+
+        if "{}_{}".format(omim_id, hpo_id) not in edge_dict.keys():
+            edge_dict["{}_{}".format(omim_id, hpo_id)] = omim_hpo_edge
             edge_list.append(omim_hpo_edge)
+        else:
+            edge_dict["{}_{}".format(omim_id, hpo_id)]["edge"]["property"].update(omim_hpo_edge["edge"]["property"])
 
-        if "{}_{}".format(omim_id, gene_name) not in edge_set:
-            edge_set.append("{}_{}".format(omim_id, gene_name))
-            omim_gene_edge = {
-                "start_node": {
-                    "label": ['OMIM'],
-                    "node_ID": "OMIM_id",
-                    "property": {
-                        "OMIM_id": omim_id
-                    }
-                },
-                "end_node": {
-                    "label": ["gene"],
-                    "node_ID": "gene_name",
-                    "property": {
-                        "gene_name": gene_name
-                    }
-                },
-                "edge": {
-                    "label": "omim_gene_influence"
+        omim_gene_edge = {
+            "start_node": {
+                "label": ['phenotype_OMIM'],
+                "node_ID": "OMIM_id",
+                "property": {
+                    "OMIM_id": omim_id
                 }
+            },
+            "end_node": {
+                "label": ["gene"],
+                "node_ID": "gene_name",
+                "property": {
+                    "gene_name": gene_name
+                }
+            },
+            "edge": {
+                "label": "omim_gene_influence",
+                "property": {}
             }
+        }
+
+        if "{}_{}".format(omim_id, gene_name) not in edge_dict.keys():
+            edge_dict["{}_{}".format(omim_id, gene_name)] = omim_gene_edge
             edge_list.append(omim_gene_edge)
+        else:
+            edge_dict["{}_{}".format(omim_id, gene_name)]["edge"]["property"].update(omim_gene_edge["edge"]["property"])
 
-        if "{}_{}".format(hpo_id, gene_name) not in edge_set:
-            edge_set.append("{}_{}".format(hpo_id, gene_name))
-            hpo_gene_edge = {
-                "start_node": {
-                    "label": ['HPO'],
-                    "node_ID": "HPO_id",
-                    "property": {
-                        "HPO_id": hpo_id
-                    }
-                },
-                "end_node": {
-                    "label": ["gene"],
-                    "node_ID": "gene_name",
-                    "property": {
-                        "gene_name": gene_name
-                    }
-                },
-                "edge": {
-                    "label": "hpo_gene_influence"
+        hpo_gene_edge = {
+            "start_node": {
+                "label": ['HPO'],
+                "node_ID": "HPO_id",
+                "property": {
+                    "HPO_id": hpo_id
                 }
+            },
+            "end_node": {
+                "label": ["gene"],
+                "node_ID": "gene_name",
+                "property": {
+                    "gene_name": gene_name
+                }
+            },
+            "edge": {
+                "label": "hpo_gene_influence",
+                "property": {}
             }
+        }
+        if "{}_{}".format(hpo_id, gene_name) not in edge_dict.keys():
+            edge_dict["{}_{}".format(hpo_id, gene_name)] = hpo_gene_edge
             edge_list.append(hpo_gene_edge)
+        else:
+            edge_dict["{}_{}".format(hpo_id, gene_name)]["edge"]["property"].update(hpo_gene_edge["edge"]["property"])
 
     with open("json/hpo_omim_nodes.json", "w") as f:
         json.dump(node_list, f)
@@ -381,7 +473,16 @@ def handle_omim_chpo_rel():
         json.dump(edge_list, f)
 
 
+def dump_data():
+    with open("json/omim_node_dict.json", "w") as f:
+        json.dump(node_dict, f)
+
+    with open("json/omim_edge_dict.json", "w") as f:
+        json.dump(edge_dict, f)
+
+
 if __name__ == "__main__":
     handle_omim_map()
-    # handle_gwas_association()
-    # handle_omim_chpo_rel()
+    handle_omim_chpo_rel()
+    handle_gwas_association()
+    dump_data()
