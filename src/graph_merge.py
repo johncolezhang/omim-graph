@@ -40,15 +40,27 @@ def graph_merge_clean():
     for ef in edge_file_list:
         df_ef = pd.read_csv(os.path.join(file_folder, ef), dtype=str).fillna("")
         start_list = [node_id_mapping.get(x, "") for x in df_ef[":START_ID"].values]
-        start_node_type = node_type_mapping[df_ef.iloc[0][":START_ID"]]
-        df_ef[":START_ID({})".format(start_node_type)] = start_list
+        start_type_list = [node_type_mapping.get(x, "") for x in df_ef[":START_ID"].values]
+        df_ef[":START_ID"] = start_list
+        df_ef["start_type"] = start_type_list
         end_list = [node_id_mapping.get(x, "") for x in df_ef[":END_ID"].values]
-        end_node_type = node_type_mapping[df_ef.iloc[0][":END_ID"]]
-        df_ef[":END_ID({})".format(end_node_type)] = end_list
-        df_ef = df_ef[(df_ef[":START_ID({})".format(start_node_type)] != "")
-                      & (df_ef[":END_ID({})".format(end_node_type)] != "")]
-        df_ef = df_ef.drop([":START_ID", ":END_ID"], axis=1)
-        df_ef.to_csv(os.path.join(output_folder, "clean_{}".format(ef)), index=False)
+        end_type_list = [node_type_mapping.get(x, "") for x in df_ef[":END_ID"].values]
+        df_ef[":END_ID"] = end_list
+        df_ef["end_type"] = end_type_list
+
+        df_ef = df_ef[
+            (df_ef[":START_ID"] != "") & (df_ef[":END_ID"] != "") &
+            (df_ef["start_type"] != "") & (df_ef["end_type"] != "")
+        ]
+
+        # 解决多节点关系匹配问题
+        for i, contents in enumerate(df_ef.groupby(["start_type", "end_type"])):
+            start_type, end_type = contents[0]
+            _df = contents[1]
+            _df[":START_ID({})".format(start_type)] = _df[":START_ID"]
+            _df[":END_ID({})".format(end_type)] = _df[":END_ID"]
+            _df = _df.drop([":START_ID", ":END_ID", "start_type", "end_type"], axis=1)
+            _df.to_csv(os.path.join(output_folder, "clean_{}_{}".format(i, ef)), index=False)
 
 
 def gene_merge():
@@ -72,7 +84,7 @@ def rsid_merge():
 
 
 if __name__ == "__main__":
-    # graph_merge_clean()
+    graph_merge_clean()
     # gene_merge()
     # rsid_merge()
     pass

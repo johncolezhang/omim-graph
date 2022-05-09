@@ -100,6 +100,19 @@ def omim_translate():
     fail_path = "translate/omim_fail_list.json"
     translate_list(phenotype_list, path1, path2, fail_path)
 
+    with open(path1, "r") as f:
+        trans_dict = json.load(f)
+
+    for index, row in df_omim.iterrows():
+        if row["OMIM_name_chn"] == "" and row["phenotype"] != "":
+            chn_str = trans_dict[pheno_mapping[row["phenotype"]]]
+            row["OMIM_name_chn"] = chn_str
+        else:
+            continue
+
+    df_omim.to_csv("output/pheno_omim_translate.csv", index=False)
+
+
 
 def similarity(target_str, candidate_list):
     max_ratio = 0
@@ -122,16 +135,32 @@ def od_merge():
     # 用于 omim节点以及disease节点之间的融合
     # 达到使用疾病名称-> omim id -> 研究位点的链路查找
     df_disease = pd.read_csv("D:/neo4j-community-4.3.1/csv_upload/clean_drug_graph.nodes.disease.csv", dtype=str).fillna("")
-    df_omim = pd.read_csv("output/pheno_omim.csv", dtype=str).fillna("")
+    df_omim = pd.read_csv("output/pheno_omim_translate.csv", dtype=str).fillna("")
 
     disease_name_list = list(df_disease["display"].values)
-    omim_name_list = list(df_omim["OMIM_name_chn"].values)
+    omim_name_list = zip(
+        list(df_omim["display"].values),
+        list(df_omim["OMIM_name_chn"].values)
+    )
 
-    for dn in disease_name_list:
-        max_omim_ratio, max_omim_str = similarity(dn, omim_name_list)
+    result_list = []
+    # disease -> omim: 1 to multi
+    for omim_id, om in omim_name_list:
+        max_ratio, max_str = similarity(om, disease_name_list)
+        if max_ratio >= 0.8:
+            result_list.append([omim_id, om, max_str, max_ratio])
 
+    df_rel = pd.DataFrame(
+        result_list,
+        columns=[":START_ID(phenotype_OMIM)", "OMIM_chn", ":END_ID(disease)", "max_ratio"]
+    )
+    df_rel[":TYPE"] = ["disease_OMIM_match"] * len(df_rel)
+
+    df_rel = df_rel[[":START_ID(phenotype_OMIM)", ":END_ID(disease)", ":TYPE"]]
+    df_rel.to_csv("output/disease_omim_edge.csv", index=False)
 
 
 if __name__ == "__main__":
-    omim_translate()
+    # omim_translate()
+    od_merge()
 
