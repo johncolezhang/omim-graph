@@ -65,24 +65,24 @@ def gen_hpo_node_csv():
 def gen_location_node_csv():
     # variant_location node, from clinvar
     # header: location:ID(variant_location),display,variant_type,reference_allele,alternate_allele,nucleotide,
-    # clinical_significance,phenotype,review_status,number_submitters,gene_name,:LABEL
-    # location_str = "location:ID(variant_location),display,variant_type,reference_allele,alternate_allele,nucleotide,clinical_significance,phenotype,review_status,number_submitters,gene_name,:LABEL\n"
-    # for key, node in clinvar_node_dict.items():
-    #     if "variant_location" in node["label"]:
-    #         row_str= ""
-    #         for col in [
-    #             "location", "display", "variant_type", "reference_allele", "alternate_allele", "nucleotide",
-    #             "clinical_significance", "phenotype", "review_status", "number_submitters", "gene_name"
-    #         ]:
-    #             cur_property = node["property"].get(col, "").replace("\"", "'")
-    #             cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
-    #             row_str += cur_property + ","
-    #
-    #         # 移除最后一个逗号
-    #         location_str += row_str + "variant_location\n"
-    #
-    # with open("output/variant_location.csv", "w", encoding="utf-8") as f:
-    #     f.write(location_str)
+    # clinical_significance,phenotype,review_status,number_submitters,gene_name,variant_link,:LABEL
+    location_str = "location:ID(variant_location),display,variant_type,reference_allele,alternate_allele,nucleotide,clinical_significance,phenotype,review_status,number_submitters,gene_name,variant_link,:LABEL\n"
+    for key, node in clinvar_node_dict.items():
+        if "variant_location" in node["label"]:
+            row_str= ""
+            for col in [
+                "location", "display", "variant_type", "reference_allele", "alternate_allele", "nucleotide",
+                "clinical_significance", "phenotype", "review_status", "number_submitters", "gene_name", "variant_link"
+            ]:
+                cur_property = node["property"].get(col, "").replace("\"", "'")
+                cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
+                row_str += cur_property + ","
+
+            # 移除最后一个逗号
+            location_str += row_str + "variant_location\n"
+
+    with open("output/variant_location.csv", "w", encoding="utf-8") as f:
+        f.write(location_str)
 
     # test csv availability
     df_location = pd.read_csv("output/variant_location.csv", dtype=str).fillna("")
@@ -201,20 +201,22 @@ def gen_omim_hpo_edge_csv():
 
 def gen_omim_location_edge_csv():
     # (phenotype_OMIM)-[clinvar_variant_omim_relation]-(variant_location), from clinvar
-    # header: :START_ID(phenotype_OMIM),:END_ID(variant_location),:TYPE
-    # omim_location_str = ":START_ID(phenotype_OMIM),:END_ID(variant_location),:TYPE\n"
-    # for key, edge in clinvar_edge_dict.items():
-    #     if "clinvar_variant_omim_relation" in edge["edge"]["label"]:
-    #         start_id = edge["start_node"]["property"]["OMIM_id"]
-    #         end_id = edge["end_node"]["property"]["location"]
-    #         # 节点存在再存储
-    #         if "omim_{}".format(start_id) in omim_node_dict.keys() and \
-    #                 "location_{}".format(end_id) in clinvar_node_dict.keys():
-    #             row_str = "{},{}".format(start_id, end_id) + ",clinvar_variant_omim_relation"
-    #             omim_location_str += row_str + "\n"
-    #
-    # with open("output/omim_location_edge.csv", "w", encoding="utf-8") as f:
-    #     f.write(omim_location_str)
+    # header: :START_ID(phenotype_OMIM),:END_ID(variant_location),:TYPE,clinvar_link
+    omim_location_str = ":START_ID(phenotype_OMIM),:END_ID(variant_location),:TYPE,clinvar_link\n"
+    for key, edge in clinvar_edge_dict.items():
+        if "clinvar_variant_omim_relation" in edge["edge"]["label"]:
+            start_id = edge["start_node"]["property"]["OMIM_id"]
+            end_id = edge["end_node"]["property"]["location"]
+            # 节点存在再存储
+            if "omim_{}".format(start_id) in omim_node_dict.keys() and \
+                    "location_{}".format(end_id) in clinvar_node_dict.keys():
+                row_str = "{},{}".format(start_id, end_id) + ",clinvar_variant_omim_relation,{}".format(
+                    edge["edge"]["property"]["clinvar_link"]
+                )
+                omim_location_str += row_str + "\n"
+
+    with open("output/omim_location_edge.csv", "w", encoding="utf-8") as f:
+        f.write(omim_location_str)
 
     # test csv availability
     df_location = pd.read_csv("output/omim_location_edge.csv")
@@ -225,20 +227,22 @@ def gen_omim_location_edge_csv():
 
 def gen_hpo_location_edge_csv():
     # (HPO)-[clinvar_variant_hpo_relation]-(variant_location), from clinvar
-    # header: :START_ID(HPO),:END_ID(variant_location),:TYPE
-    # hpo_location_str = ":START_ID(HPO),:END_ID(variant_location),:TYPE\n"
-    # for key, edge in clinvar_edge_dict.items():
-    #     if "clinvar_variant_hpo_relation" in edge["edge"]["label"]:
-    #         start_id = edge["start_node"]["property"]["HPO_id"]
-    #         end_id = edge["end_node"]["property"]["location"]
-    #         # 节点存在再存储
-    #         if "hpo_{}".format(start_id) in omim_node_dict.keys() and \
-    #                 "location_{}".format(end_id) in clinvar_node_dict.keys():
-    #             row_str = "{},{}".format(start_id, end_id) + ",clinvar_variant_hpo_relation"
-    #             hpo_location_str += row_str + "\n"
-    #
-    # with open("output/hpo_location_edge.csv", "w", encoding="utf-8") as f:
-    #     f.write(hpo_location_str)
+    # header: :START_ID(HPO),:END_ID(variant_location),:TYPE,clinvar_link
+    hpo_location_str = ":START_ID(HPO),:END_ID(variant_location),:TYPE,clinvar_link\n"
+    for key, edge in clinvar_edge_dict.items():
+        if "clinvar_variant_hpo_relation" in edge["edge"]["label"]:
+            start_id = edge["start_node"]["property"]["HPO_id"]
+            end_id = edge["end_node"]["property"]["location"]
+            # 节点存在再存储
+            if "hpo_{}".format(start_id) in omim_node_dict.keys() and \
+                    "location_{}".format(end_id) in clinvar_node_dict.keys():
+                row_str = "{},{}".format(start_id, end_id) + ",clinvar_variant_hpo_relation,{}".format(
+                    edge["edge"]["property"]["clinvar_link"]
+                )
+                hpo_location_str += row_str + "\n"
+
+    with open("output/hpo_location_edge.csv", "w", encoding="utf-8") as f:
+        f.write(hpo_location_str)
 
     # test csv availability
     df_location = pd.read_csv("output/hpo_location_edge.csv")
@@ -375,18 +379,18 @@ def gene_hpo_gene_edge_csv():
 
 
 if __name__ == "__main__":
-    gen_omim_node_csv()
-    gen_hpo_node_csv()
+    # gen_omim_node_csv()
+    # gen_hpo_node_csv()
     gen_location_node_csv()
-    gen_rsid_node_csv()
-    gen_pubmed_node_csv()
-    gen_gene_node_csv()
+    # gen_rsid_node_csv()
+    # gen_pubmed_node_csv()
+    # gen_gene_node_csv()
 
-    gen_omim_hpo_edge_csv()
+    # gen_omim_hpo_edge_csv()
     gen_omim_location_edge_csv()
     gen_hpo_location_edge_csv()
-    gen_location_rsid_edge_csv()
-    gen_pubmed_gene_edge_csv()
-    gen_pubmed_rsid_edge_csv()
-    gen_omim_gene_edge_csv()
-    gene_hpo_gene_edge_csv()
+    # gen_location_rsid_edge_csv()
+    # gen_pubmed_gene_edge_csv()
+    # gen_pubmed_rsid_edge_csv()
+    # gen_omim_gene_edge_csv()
+    # gene_hpo_gene_edge_csv()

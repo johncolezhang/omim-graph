@@ -61,7 +61,7 @@ def gene_merge():
     df_gene.to_csv("D:/neo4j-community-4.3.1/csv_upload/gene_merge.csv", index=False)
 
 
-def rsID_merge():
+def rsid_merge():
     path1 = "output/rsID.csv"
     path2 = "D:/neo4j-community-4.3.1/csv_upload/clean_drug_graph.nodes.variant.rsID.csv"
     df_1 = pd.read_csv(path1, dtype=str).fillna("")
@@ -74,5 +74,5 @@ def rsID_merge():
 if __name__ == "__main__":
     # graph_merge_clean()
     # gene_merge()
-    # rsID_merge()
+    # rsid_merge()
     pass

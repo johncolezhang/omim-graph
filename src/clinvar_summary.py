@@ -40,6 +40,8 @@ def handle_summary():
         position = row["PositionVCF"]
         reference = row["ReferenceAlleleVCF"]
         alternate = row["AlternateAlleleVCF"]
+        variant_id = row["VariationID"]
+        variant_link = "https://www.ncbi.nlm.nih.gov/clinvar/variation/{}".format(variant_id)
 
         pheno_omim_list = extract_omim_id(phenotype_ids)
         hpo_list = extract_hpo_id(phenotype_ids)
@@ -62,7 +64,8 @@ def handle_summary():
                 "phenotype": ", ".join(phenotype_list),
                 "review_status": review_status,
                 "number_submitters": number_submitters,
-                "gene_name": gene_name
+                "gene_name": gene_name,
+                "variant_link": variant_link
             }
         }
         if "location_{}".format(location) not in node_dict.keys():
@@ -109,7 +112,9 @@ def handle_summary():
                     },
                     "edge": {
                         "label": "clinvar_variant_hpo_relation",
-                        "property": {}
+                        "property": {
+                            "clinvar_link": variant_link
+                        }
                     }
                 }
                 if "{}_{}".format(hpo, location) not in edge_dict.keys():
@@ -139,7 +144,9 @@ def handle_summary():
                     },
                     "edge": {
                         "label": "clinvar_variant_omim_relation",
-                        "property": {}
+                        "property": {
+                            "clinvar_link": variant_link
+                        }
                     }
                 }
                 if "{}_{}".format(p_omim, location) not in edge_dict.keys():
