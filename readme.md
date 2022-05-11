@@ -11,6 +11,7 @@
 ## 知识图谱的原型设计
 ![图谱原型](img/2.png)
 <div>图2.遗传疾病和个体特征知识图谱设计原型</div>
+<br>
 
 该图上半部分展示的是药物基因组知识图谱的原型，该图谱的具体细节可以参考药物基因组知识图谱项目
 [github](https://github.com/johncolezhang/pgkb_graph) or [gilab wiki](https://gitlab.omgut.com/zhangke1/pgkb_graph/-/wikis/BGE%E7%9F%A5%E8%AF%86%E5%9B%BE%E8%B0%B1%E4%BB%8B%E7%BB%8D)
@@ -97,9 +98,11 @@ RETURN type, value.count
 ### PubMed节点
 ![pubmed节点](img/4.png)
 <div>图4.PubMed在Neo4j中的显示</div>
+<br>
  
 ![pubmed属性](img/5.png)
 <div>图5.PubMed节点属性</div>
+<br>
 
 PubMed节点与基因节点、rsID节点、个体特征节点相连，记录了论文发表的期刊、论文研究的主题等信息，
 通过关系边可以查询到论文中研究的基因，rsID以及个体特征节点。在`research_in_rsID`类型的关系边属性中，
@@ -111,6 +114,7 @@ PubMed节点与基因节点、rsID节点、个体特征节点相连，记录了�
 ### 个体特征节点Trait
 ![Trait节点](img/7.png)
 <div>图7.个体特征节点在Neo4j中的显示(灰色节点)</div>
+<br>
 
 个体特征节点与PubMed节点相连，通过PubMed节点与基因、基因变异的关系边，可以遍历到影响个体特征的基因和变异。
 
@@ -120,6 +124,7 @@ PubMed节点与基因节点、rsID节点、个体特征节点相连，记录了�
 ### OMIM_disease节点
 ![OMIM_diseasse节点](img/9.png)
 <div>图9.OMIM节点在Neo4j中的显示(灰色节点)</div>
+<br>
 
 OMIM节点中储存了该疾病的标准名称、表型以及遗传模式。OMIM节点在图谱中与人类表型HPO节点、基因节点、变异点位节点、药物适应症节点相连。
 
@@ -133,6 +138,8 @@ OMIM节点中储存了该疾病的标准名称、表型以及遗传模式。OMIM
 ### variant_location节点
 ![variant_location节点](img/11.png)
 <div>图11.变异点位节点在Neo4j中的显示</div>
+<br>
+
 变异点位中存储了一系列的属性数据，包括：位点坐标、变异类型、所在基因、表型、是否致病、审查状态、审查分数(0-4)等数据。
 
 - 变异点位<->rsID，变异点位<->gene 的连接关系表示：变异点位位于该gene中，并且被该rsID包含.
