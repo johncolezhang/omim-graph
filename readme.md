@@ -91,8 +91,8 @@ RETURN type, value.count
 | research_in_trait  | 9798  |   |   |
 
 
-## 新节点详情
-这里介绍本次新图谱里重点加入的节点类型：**PubMed**, **variant_location**, **OMIM_disease**, **Trait**
+## 节点详情
+这里介绍本次新图谱里重点加入的节点类型：**PubMed**, **variant_location**, **OMIM_disease**, **Trait**, **HPO**
 
 ### PubMed节点
 ![pubmed节点](img/4.png)
@@ -121,8 +121,28 @@ PubMed节点与基因节点、rsID节点、个体特征节点相连，记录了�
 ![OMIM_diseasse节点](img/9.png)
 <div>图9.OMIM节点在Neo4j中的显示(灰色节点)</div>
 
-OMIM节点在图谱中与人类表型HPO节点、基因节点、变异点位节点、药物适应症节点相连。
+OMIM节点中储存了该疾病的标准名称、表型以及遗传模式。OMIM节点在图谱中与人类表型HPO节点、基因节点、变异点位节点、药物适应症节点相连。
 
 - OMIM<->变异点位，OMIM<->基因 的连接关系表示：在clinvar中，OMIM疾病与一系列变异点位及基因有关，具体的相关性重要程度在变异点位节点的属性中。
 - OMIM<->HPO 的连接关系表示：OMIM疾病与人类表型HPO的具体类型相关。
 - OMIM<->药物适应症的连接关系表示：从OMIM的标准疾病名称中，可以匹配到药物基因组图谱中的药物适应症节点，该关系是通过文本相似度匹配得到的。
+
+![OMIM_disease节点属性](img/10.png)
+<div>图10.OMIM节点属性</div>
+
+### variant_location节点
+![variant_location节点](img/11.png)
+<div>图11.变异点位节点在Neo4j中的显示</div>
+变异点位中存储了一系列的属性数据，包括：位点坐标、变异类型、所在基因、表型、是否致病、审查状态、审查分数(0-4)等数据。
+
+- 变异点位<->rsID，变异点位<->gene 的连接关系表示：变异点位位于该gene中，并且被该rsID包含.
+- 变异点位<->PubMed 的连接关系表示：通过PubMed[论文引用数据 var_citation](https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/var_citations.txt) 的变异位点及PubMed关系数据，找到PubMed中变异位点的研究情况。
+- 变异点位<->OMIM 的连接关系表示：在clinvar中，OMIM疾病与一系列变异点位及基因有关，变异位点相关性重要程度在变异点位节点的属性中，例如是否致病、审查分数等属性。
+
+变异点位节点是图谱中占比最高的节点，其个数达到111万+。
+
+![variant_location节点属性](img/12.png)
+<div>图12.变异点位节点属性</div>
+
+## 图谱分析
+图谱分析及使用的详情参考该文件：[analysis.md](analysis.md)
