@@ -26,6 +26,17 @@ def handle_summary():
     node_list = []
     edge_list = []
 
+    review_dict = {
+        'no interpretation for the single variant': "0",
+        'no assertion criteria provided': "0",
+        'no assertion provided': "0",
+        'criteria provided, single submitter': "1",
+        'criteria provided, conflicting interpretations': "1",
+        'criteria provided, multiple submitters, no conflicts': "2",
+        'reviewed by expert panel': "3",
+        'practice guideline': "4",
+    }
+
     for index, row in df_variant.iterrows():
         variant_type = row["Type"]
         nucleotide = row["Name"]
@@ -36,6 +47,7 @@ def handle_summary():
         phenotype_list = row["PhenotypeList"].split("|")
         chromosome = row["Chromosome"]
         review_status = row["ReviewStatus"]
+        review_score = review_dict.get(review_status, "-1")
         number_submitters = row["NumberSubmitters"]
         position = row["PositionVCF"]
         reference = row["ReferenceAlleleVCF"]
@@ -65,7 +77,8 @@ def handle_summary():
                 "review_status": review_status,
                 "number_submitters": number_submitters,
                 "gene_name": gene_name,
-                "variant_link": variant_link
+                "variant_link": variant_link,
+                "review_score": review_score
             }
         }
         if "location_{}".format(location) not in node_dict.keys():

@@ -1,39 +1,45 @@
 import json
 import pandas as pd
 
-with open("json/omim_node_dict.json", "r") as f:
-    omim_node_dict = json.load(f)
-
-with open("json/omim_edge_dict.json", "r") as f:
-    omim_edge_dict = json.load(f)
-
-with open("json/clinvar_node_dict.json", "r") as f:
-    clinvar_node_dict = json.load(f)
-
-with open("json/clinvar_edge_dict.json", "r") as f:
-    clinvar_edge_dict = json.load(f)
+# with open("json/omim_node_dict.json", "r") as f:
+#     omim_node_dict = json.load(f)
+#
+# with open("json/omim_edge_dict.json", "r") as f:
+#     omim_edge_dict = json.load(f)
+#
+# with open("json/clinvar_node_dict.json", "r") as f:
+#     clinvar_node_dict = json.load(f)
+#
+# with open("json/clinvar_edge_dict.json", "r") as f:
+#     clinvar_edge_dict = json.load(f)
 
 
 def gen_omim_node_csv():
-    # phenotype_OMIM node, from omim
-    # header: OMIM_id:ID(phenotype_OMIM),display,phenotype,inheritance,:LABEL
-    # omim_str = "OMIM_id:ID(phenotype_OMIM),display,OMIM_name,OMIM_name_chn,phenotype,inheritance,:LABEL\n"
+    # OMIM_disease node, from omim
+    # header: OMIM_id:ID(OMIM_disease),display,phenotype,inheritance,:LABEL
+    # omim_str = "OMIM_id:ID(OMIM_disease),display,OMIM_name,OMIM_name_chn,phenotype,inheritance,:LABEL\n"
     # for key, node in omim_node_dict.items():
-    #     if "phenotype_OMIM" in node["label"]:
+    #     if "OMIM_disease" in node["label"]:
     #         row_str = ""
     #         for col in ["OMIM_id", "display", "OMIM_name", "OMIM_name_chn", "phenotype", "inheritance"]:
     #             cur_property = node["property"].get(col, "").replace("\"", "\'")
     #             cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
     #             row_str += cur_property + ","
     #
-    #         omim_str += row_str + "phenotype_OMIM\n"
+    #         omim_str += row_str + "OMIM_disease\n"
     #
     # with open("output/pheno_omim.csv", "w", encoding="utf-8") as f:
     #     f.write(omim_str)
 
     # test csv availability
     df = pd.read_csv("output/pheno_omim.csv", dtype=str).fillna("")
-    df[":LABEL"] = ["phenotype_OMIM"] * len(df)
+    try:
+        df[["OMIM_id:ID(OMIM_disease)"]] = df[["OMIM_id:ID(phenotype_OMIM)"]]
+        df = df.drop(["OMIM_id:ID(phenotype_OMIM)"], axis=1)
+    except:
+        pass
+
+    df[":LABEL"] = ["OMIM_disease"] * len(df)
     df.to_csv("output/pheno_omim.csv", index=False)
 
 
@@ -66,28 +72,44 @@ def gen_location_node_csv():
     # variant_location node, from clinvar
     # header: location:ID(variant_location),display,variant_type,reference_allele,alternate_allele,nucleotide,
     # clinical_significance,phenotype,review_status,number_submitters,gene_name,variant_link,:LABEL
-    location_str = "location:ID(variant_location),display,variant_type,reference_allele,alternate_allele,nucleotide,clinical_significance,phenotype,review_status,number_submitters,gene_name,variant_link,:LABEL\n"
-    for key, node in clinvar_node_dict.items():
-        if "variant_location" in node["label"]:
-            row_str= ""
-            for col in [
-                "location", "display", "variant_type", "reference_allele", "alternate_allele", "nucleotide",
-                "clinical_significance", "phenotype", "review_status", "number_submitters", "gene_name", "variant_link"
-            ]:
-                cur_property = node["property"].get(col, "").replace("\"", "'")
-                cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
-                row_str += cur_property + ","
+    # location_str = "location:ID(variant_location),display,variant_type,reference_allele,alternate_allele,nucleotide,clinical_significance,phenotype,review_status,number_submitters,gene_name,variant_link,:LABEL\n"
+    # for key, node in clinvar_node_dict.items():
+    #     if "variant_location" in node["label"]:
+    #         row_str= ""
+    #         for col in [
+    #             "location", "display", "variant_type", "reference_allele", "alternate_allele", "nucleotide",
+    #             "clinical_significance", "phenotype", "review_status", "number_submitters", "gene_name", "variant_link"
+    #         ]:
+    #             cur_property = node["property"].get(col, "").replace("\"", "'")
+    #             cur_property = "\"{}\"".format(cur_property) if "," in cur_property else cur_property
+    #             row_str += cur_property + ","
+    #
+    #         # 移除最后一个逗号
+    #         location_str += row_str + "variant_location\n"
+    #
+    # with open("output/variant_location.csv", "w", encoding="utf-8") as f:
+    #     f.write(location_str)
 
-            # 移除最后一个逗号
-            location_str += row_str + "variant_location\n"
-
-    with open("output/variant_location.csv", "w", encoding="utf-8") as f:
-        f.write(location_str)
+    review_dict = {
+        'no interpretation for the single variant': "0",
+        'no assertion criteria provided': "0",
+        'no assertion provided': "0",
+        'criteria provided, single submitter': "1",
+        'criteria provided, conflicting interpretations': "1",
+        'criteria provided, multiple submitters, no conflicts': "2",
+        'reviewed by expert panel': "3",
+        'practice guideline': "4",
+    }
 
     # test csv availability
     df_location = pd.read_csv("output/variant_location.csv", dtype=str).fillna("")
     df_location = df_location[df_location["location:ID(variant_location)"].str.len() < 512]
+    df_location = df_location[df_location["location:ID(variant_location)"] != ""]
     df_location[":LABEL"] = ["variant_location"] * len(df_location)
+    df_location["review_score"] = df_location.apply(
+        lambda row: review_dict.get(row["review_status"], "-1"),
+        axis=1
+    )
     df_location.to_csv("output/variant_location.csv", index=False)
 
 
@@ -178,8 +200,8 @@ def gen_gene_node_csv():
 
 def gen_omim_hpo_edge_csv():
     # (omim)-[has_phenotype]->(hpo), from omim
-    # header: :START_ID(phenotype_OMIM),:END_ID(HPO):TYPE
-    # omim_hpo_str = ":START_ID(phenotype_OMIM),:END_ID(HPO),:TYPE\n"
+    # header: :START_ID(OMIM_disease),:END_ID(HPO):TYPE
+    # omim_hpo_str = ":START_ID(OMIM_disease),:END_ID(HPO),:TYPE\n"
     # for key, edge in omim_edge_dict.items():
     #     if "has_phenotype" in edge["edge"]["label"]:
     #         start_id = edge["start_node"]["property"]["OMIM_id"]
@@ -195,31 +217,42 @@ def gen_omim_hpo_edge_csv():
 
     # test csv availability
     df = pd.read_csv("output/omim_hpo_edge.csv", dtype=str).fillna("")
+    try:
+        df[[":START_ID(OMIM_disease)"]] = df[[":START_ID(phenotype_OMIM)"]]
+        df = df.drop([":START_ID(phenotype_OMIM)"], axis=1)
+    except:
+        pass
     df[":TYPE"] = ["has_phenotype"] * len(df)
     df.to_csv("output/omim_hpo_edge.csv", index=False)
 
 
 def gen_omim_location_edge_csv():
-    # (phenotype_OMIM)-[clinvar_variant_omim_relation]-(variant_location), from clinvar
-    # header: :START_ID(phenotype_OMIM),:END_ID(variant_location),:TYPE,clinvar_link
-    omim_location_str = ":START_ID(phenotype_OMIM),:END_ID(variant_location),:TYPE,clinvar_link\n"
-    for key, edge in clinvar_edge_dict.items():
-        if "clinvar_variant_omim_relation" in edge["edge"]["label"]:
-            start_id = edge["start_node"]["property"]["OMIM_id"]
-            end_id = edge["end_node"]["property"]["location"]
-            # 节点存在再存储
-            if "omim_{}".format(start_id) in omim_node_dict.keys() and \
-                    "location_{}".format(end_id) in clinvar_node_dict.keys():
-                row_str = "{},{}".format(start_id, end_id) + ",clinvar_variant_omim_relation,{}".format(
-                    edge["edge"]["property"]["clinvar_link"]
-                )
-                omim_location_str += row_str + "\n"
-
-    with open("output/omim_location_edge.csv", "w", encoding="utf-8") as f:
-        f.write(omim_location_str)
+    # (OMIM_disease)-[clinvar_variant_omim_relation]-(variant_location), from clinvar
+    # header: :START_ID(OMIM_disease),:END_ID(variant_location),:TYPE,clinvar_link
+    # omim_location_str = ":START_ID(OMIM_disease),:END_ID(variant_location),:TYPE,clinvar_link\n"
+    # for key, edge in clinvar_edge_dict.items():
+    #     if "clinvar_variant_omim_relation" in edge["edge"]["label"]:
+    #         start_id = edge["start_node"]["property"]["OMIM_id"]
+    #         end_id = edge["end_node"]["property"]["location"]
+    #         # 节点存在再存储
+    #         if "omim_{}".format(start_id) in omim_node_dict.keys() and \
+    #                 "location_{}".format(end_id) in clinvar_node_dict.keys():
+    #             row_str = "{},{}".format(start_id, end_id) + ",clinvar_variant_omim_relation,{}".format(
+    #                 edge["edge"]["property"]["clinvar_link"]
+    #             )
+    #             omim_location_str += row_str + "\n"
+    #
+    # with open("output/omim_location_edge.csv", "w", encoding="utf-8") as f:
+    #     f.write(omim_location_str)
 
     # test csv availability
     df_location = pd.read_csv("output/omim_location_edge.csv")
+    try:
+        df_location[[":START_ID(OMIM_disease)"]] = df_location[[":START_ID(phenotype_OMIM)"]]
+        df_location = df_location.drop([":START_ID(phenotype_OMIM)"], axis=1)
+    except:
+        pass
+
     df_location = df_location[df_location[":END_ID(variant_location)"].str.len() < 512]
     df_location[":TYPE"] = ["clinvar_variant_omim_relation"] * len(df_location)
     df_location.to_csv("output/omim_location_edge.csv", index=False)
@@ -228,21 +261,21 @@ def gen_omim_location_edge_csv():
 def gen_hpo_location_edge_csv():
     # (HPO)-[clinvar_variant_hpo_relation]-(variant_location), from clinvar
     # header: :START_ID(HPO),:END_ID(variant_location),:TYPE,clinvar_link
-    hpo_location_str = ":START_ID(HPO),:END_ID(variant_location),:TYPE,clinvar_link\n"
-    for key, edge in clinvar_edge_dict.items():
-        if "clinvar_variant_hpo_relation" in edge["edge"]["label"]:
-            start_id = edge["start_node"]["property"]["HPO_id"]
-            end_id = edge["end_node"]["property"]["location"]
-            # 节点存在再存储
-            if "hpo_{}".format(start_id) in omim_node_dict.keys() and \
-                    "location_{}".format(end_id) in clinvar_node_dict.keys():
-                row_str = "{},{}".format(start_id, end_id) + ",clinvar_variant_hpo_relation,{}".format(
-                    edge["edge"]["property"]["clinvar_link"]
-                )
-                hpo_location_str += row_str + "\n"
-
-    with open("output/hpo_location_edge.csv", "w", encoding="utf-8") as f:
-        f.write(hpo_location_str)
+    # hpo_location_str = ":START_ID(HPO),:END_ID(variant_location),:TYPE,clinvar_link\n"
+    # for key, edge in clinvar_edge_dict.items():
+    #     if "clinvar_variant_hpo_relation" in edge["edge"]["label"]:
+    #         start_id = edge["start_node"]["property"]["HPO_id"]
+    #         end_id = edge["end_node"]["property"]["location"]
+    #         # 节点存在再存储
+    #         if "hpo_{}".format(start_id) in omim_node_dict.keys() and \
+    #                 "location_{}".format(end_id) in clinvar_node_dict.keys():
+    #             row_str = "{},{}".format(start_id, end_id) + ",clinvar_variant_hpo_relation,{}".format(
+    #                 edge["edge"]["property"]["clinvar_link"]
+    #             )
+    #             hpo_location_str += row_str + "\n"
+    #
+    # with open("output/hpo_location_edge.csv", "w", encoding="utf-8") as f:
+    #     f.write(hpo_location_str)
 
     # test csv availability
     df_location = pd.read_csv("output/hpo_location_edge.csv")
@@ -333,9 +366,9 @@ def gen_pubmed_rsid_edge_csv():
 
 
 def gen_omim_gene_edge_csv():
-    # (phenotype_OMIM)-[omim_gene_influence]-(gene), from omim
-    # header: :START_ID(phenotype_OMIM),:END_ID(gene),:TYPE
-    # omim_gene_str = ":START_ID(phenotype_OMIM),:END_ID(gene),:TYPE\n"
+    # (OMIM_disease)-[omim_gene_influence]-(gene), from omim
+    # header: :START_ID(OMIM_disease),:END_ID(gene),:TYPE
+    # omim_gene_str = ":START_ID(OMIM_disease),:END_ID(gene),:TYPE\n"
     # for key, edge in omim_edge_dict.items():
     #     if "omim_gene_influence" in edge["edge"]["label"]:
     #         start_id = edge["start_node"]["property"]["OMIM_id"]
@@ -351,6 +384,11 @@ def gen_omim_gene_edge_csv():
 
     # test csv availability
     df = pd.read_csv("output/omim_gene_edge.csv", dtype=str).fillna("")
+    try:
+        df[[":START_ID(OMIM_disease)"]] = df[[":START_ID(phenotype_OMIM)"]]
+        df = df.drop([":START_ID(phenotype_OMIM)"], axis=1)
+    except:
+        pass
     df[":TYPE"] = ["omim_gene_influence"] * len(df)
     df.to_csv("output/omim_gene_edge.csv", index=False)
 
@@ -387,8 +425,8 @@ if __name__ == "__main__":
     # gen_gene_node_csv()
 
     # gen_omim_hpo_edge_csv()
-    gen_omim_location_edge_csv()
-    gen_hpo_location_edge_csv()
+    # gen_omim_location_edge_csv()
+    # gen_hpo_location_edge_csv()
     # gen_location_rsid_edge_csv()
     # gen_pubmed_gene_edge_csv()
     # gen_pubmed_rsid_edge_csv()

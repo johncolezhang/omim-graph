@@ -1,7 +1,7 @@
 import re
-
 import pandas as pd
 import json
+from omim_disease_merge import translate_list
 
 node_dict = {}
 edge_dict = {}
@@ -25,6 +25,7 @@ def handle_gwas_association():
 
     (pubmed)-[research_in_gene]->(gene)
     (pubmed)-[research_in_rsID]->(rsID)
+    (pubmed)-[research_in_trait]->(trait)
     """
     df_gwas = pd.read_csv(
         "data/gwas/gwas_catalog_v1.0-associations_e105_r2021-12-21.tsv",
@@ -33,6 +34,8 @@ def handle_gwas_association():
 
     node_list = []
     edge_list = []
+
+    trait_list = set(df_gwas["DISEASE/TRAIT"].values)
 
     for index, row in df_gwas.iterrows():
         # for node
@@ -485,8 +488,55 @@ def dump_data():
         json.dump(edge_dict, f)
 
 
+def trait_translate():
+    df_gwas = pd.read_csv(
+        "data/gwas/gwas_catalog_v1.0-associations_e105_r2021-12-21.tsv",
+        sep="\t", dtype=str
+    ).fillna("")
+
+    trait_list = sorted(set(df_gwas["DISEASE/TRAIT"].values))
+    trait_clean_list = [re.sub(r"[&\'+-]", " ", x).strip() for x in trait_list]
+    trait_mapping = dict(zip(trait_list, trait_clean_list))
+
+    batch_size = 5
+
+    translate_trait_list = []
+    for i in range(int(len(trait_clean_list) / batch_size) + 1):
+        translate_trait_list.append("\n".join(trait_clean_list[i * batch_size: (i + 1) * batch_size]))
+
+    path1 = "translate/trait_translate_dict.json"
+    path2 = "translate/trait_fail_review.tsv"
+    fail_path = "translate/trait_fail_list.json"
+    translate_list(translate_trait_list, path1, path2, fail_path)
+
+    with open(path1, "r") as f:
+        trans_dict = json.load(f)
+
+    trait_chn_list = [trans_dict[trait_mapping[x]] for x in trait_list]
+
+    df_trait = pd.DataFrame(zip(trait_list, trait_chn_list), columns=["trait_name:ID(trait)", "trait_name_chn"])
+    df_trait = df_trait[df_trait["trait_name:ID(trait)"] != ""]
+    df_trait[":LABEL"] = ["trait"] * len(df_trait)
+    df_trait.to_csv("output/trait.csv", index=False)
+
+
+    df_gwas = df_gwas[["PUBMEDID", "DISEASE/TRAIT"]]
+    df_gwas[[":START_ID(pubmed)", ":END_ID(trait)"]] = df_gwas[["PUBMEDID", "DISEASE/TRAIT"]]
+    df_gwas = df_gwas[[":START_ID(pubmed)", ":END_ID(trait)"]]
+
+    df_gwas = df_gwas[
+        (df_gwas[":START_ID(pubmed)"] != "") &
+        (df_gwas[":END_ID(trait)"] != "")
+        ]
+
+    df_gwas = df_gwas.drop_duplicates()
+    df_gwas[":TYPE"] = ["research_in_trait"] * len(df_gwas)
+    df_gwas.to_csv("output/pubmed_trait_edge.csv", index=False)
+
+
 if __name__ == "__main__":
-    handle_omim_map()
-    handle_omim_chpo_rel()
-    handle_gwas_association()
-    dump_data()
+    # handle_omim_map()
+    # handle_omim_chpo_rel()
+    # handle_gwas_association()
+    # dump_data()
+    trait_translate()

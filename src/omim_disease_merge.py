@@ -110,7 +110,15 @@ def omim_translate():
         else:
             continue
 
+    try:
+        df_omim[["OMIM_id:ID(OMIM_disease)"]] = df_omim[["OMIM_id:ID(phenotype_OMIM)"]]
+        df_omim = df_omim.drop(["OMIM_id:ID(phenotype_OMIM)"], axis=1)
+    except:
+        pass
+
+
     df_omim.to_csv("output/pheno_omim_translate.csv", index=False)
+    df_omim.to_excel("output/pheno_omim_translate.xlsx", index=False)
 
 
 
@@ -157,10 +165,19 @@ def od_merge():
     df_rel[":TYPE"] = ["disease_OMIM_match"] * len(df_rel)
 
     df_rel = df_rel[[":START_ID(phenotype_OMIM)", ":END_ID(disease)", ":TYPE"]]
+
+    df_rel = pd.read_csv("output/disease_omim_edge.csv", dtype=str).fillna("")
+
+    try:
+        df_rel[[":START_ID(OMIM_disease)"]] = df_rel[[":START_ID(phenotype_OMIM)"]]
+        df_rel = df_rel.drop([":START_ID(phenotype_OMIM)"], axis=1)
+    except:
+        pass
+
     df_rel.to_csv("output/disease_omim_edge.csv", index=False)
 
 
 if __name__ == "__main__":
-    # omim_translate()
+    omim_translate()
     od_merge()
 

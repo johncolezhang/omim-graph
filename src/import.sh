@@ -12,6 +12,8 @@ neo4j-admin import --database omim ^
   --nodes=csv_upload/clean_drug_graph.nodes.nmpa_drug.csv ^
   --nodes=csv_upload/clean_drug_graph.nodes.symptom.csv ^
   --nodes=csv_upload/clean_drug_graph.nodes.variant.haplotype.csv ^
+  --nodes=csv_upload/clinvar_pubmed.csv ^
+  --nodes=csv_upload/trait.csv ^
   --relationships=csv_upload/omim_hpo_edge.csv ^
   --relationships=csv_upload/omim_location_edge.csv ^
   --relationships=csv_upload/hpo_location_edge.csv ^
@@ -46,6 +48,9 @@ neo4j-admin import --database omim ^
   --relationships=csv_upload/clean_0_drug_graph.relationships.variant_guideline.csv ^
   --relationships=csv_upload/clean_1_drug_graph.relationships.variant_guideline.csv ^
   --relationships=csv_upload/disease_omim_edge.csv ^
+  --relationships=csv_upload/location_gene_edge.csv ^
+  --relationships=csv_upload/location_pubmed_edge.csv ^
+  --relationships=csv_upload/pubmed_trait_edge.csv ^
   --trim-strings=true ^
   --id-type=STRING ^
   --skip-duplicate-nodes=true ^
@@ -54,6 +59,6 @@ neo4j-admin import --database omim ^
   --multiline-fields=true
 
 
-neo4j-admin dump --database=omim --to=d:/neo4j_dump/omim.db.2022_05_09.dump
+neo4j-admin dump --database=omim --to=d:/neo4j_dump/omim.db.2022_05_10.dump
 
 neo4j-admin load --from=<file_path> --database=neo4j --force
