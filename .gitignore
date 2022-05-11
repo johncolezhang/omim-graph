@@ -2,3 +2,5 @@
 *.idea*
 /json/
 *.pyc
+/output/
+/translate/
