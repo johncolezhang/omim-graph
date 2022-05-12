@@ -9,7 +9,8 @@
 <div>图1.图谱规模统计</div>
 
 ## 知识图谱的原型设计
-![图谱原型](img/2.png)
+
+<img alt="图谱原型" height="825px" src="img/2.png" width="1402px"/>
 <div>图2.遗传疾病和个体特征知识图谱设计原型</div>
 <br>
 
