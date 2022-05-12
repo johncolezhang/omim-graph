@@ -361,6 +361,8 @@ def gen_pubmed_rsid_edge_csv():
 
     # test csv availability
     df = pd.read_csv("output/pubmed_rsid_edge.csv", dtype=str).fillna("")
+    df[["p_value_mlog:double"]] = df[["p_value_mlog"]]
+    df = df.drop("p_value_mlog", axis=1)
     df[":TYPE"] = ["research_in_rsID"] * len(df)
     df.to_csv("output/pubmed_rsid_edge.csv", index=False)
 
@@ -419,7 +421,7 @@ def gene_hpo_gene_edge_csv():
 if __name__ == "__main__":
     # gen_omim_node_csv()
     # gen_hpo_node_csv()
-    gen_location_node_csv()
+    # gen_location_node_csv()
     # gen_rsid_node_csv()
     # gen_pubmed_node_csv()
     # gen_gene_node_csv()
@@ -429,6 +431,6 @@ if __name__ == "__main__":
     # gen_hpo_location_edge_csv()
     # gen_location_rsid_edge_csv()
     # gen_pubmed_gene_edge_csv()
-    # gen_pubmed_rsid_edge_csv()
+    gen_pubmed_rsid_edge_csv()
     # gen_omim_gene_edge_csv()
     # gene_hpo_gene_edge_csv()

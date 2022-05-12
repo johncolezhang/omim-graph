@@ -1,5 +1,7 @@
 # 遗传疾病和个体特征知识图谱的搭建，以及与药物基因组图谱的融合
 
+目录：
+
 [TOC]
 
 本项目基于OMIM疾病及表型数据，HPO人类表型数据， GWAS个体特征研究报告数据以及pubmed中与基因、疾病、表型的论文文本数据解析，
@@ -40,7 +42,7 @@
 call db.schema.visualization
 ```
 ![graph schema](img/3.png)
-<div>图3.Neo4j中的图谱schema</div>
+<div>图3.Neo4j中的图谱schema，点击查看大图</div>
 
 ## 图谱数量统计
 ### 节点统计：
